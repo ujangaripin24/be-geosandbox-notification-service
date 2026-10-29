@@ -11,10 +11,25 @@ services:
   server:
     build:
       context: .
-    environment:
-      NODE_ENV: production
-    ports:
-      - 3640:3640
+      dockerfile: Dockerfile
+    container_name: notif_service_app
+    restart: always
+    command: npm run dev
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    env_file:
+      - .env
+    expose:
+      - "3640"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    networks:
+      - global-network-geosandbox
 
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to
@@ -49,3 +64,6 @@ services:
 #   db-password:
 #     file: db/password.txt
 
+networks:
+  global-network-geosandbox:
+    external: true
