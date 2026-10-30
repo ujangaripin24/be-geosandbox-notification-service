@@ -7,11 +7,11 @@ const helmet = require("helmet");
 const createError = require("http-errors");
 const messageBroker = require("./config/message-broker.config");
 const database = require("./config/database.config");
+const { version } = require("../package.json");
 
 dotenv.config();
 
 let app = express();
-let dateNow = new Date().toISOString().replace("T", " ").substring(0, 19);
 
 app.use(
   helmet({
@@ -48,11 +48,12 @@ app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.get("/", (req, res) => {
+app.get("/api/v1/notif/health", (req, res) => {
   res.status(200).json({
     status: 200,
+    versionApp: version,
     message: "[SERVICE-NOTIFICATION] Server Berhasil Berjalan",
-    date: dateNow,
+    date: new Date().toISOString().replace("T", " ").substring(0, 19),
   });
 });
 
