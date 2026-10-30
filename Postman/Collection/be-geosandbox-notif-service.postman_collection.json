@@ -1,0 +1,33 @@
+{
+	"info": {
+		"_postman_id": "1c4266b0-9f50-4667-b4e6-bc505b997f3c",
+		"name": "be-geosandbox-notif-service",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "21807576",
+		"_collection_link": "https://blue-rocket-102937.postman.co/workspace/My-Workspace~09f9e03d-cd71-4a80-83f3-6765d15cbdb6/collection/21807576-1c4266b0-9f50-4667-b4e6-bc505b997f3c?action=share&source=collection_link&creator=21807576"
+	},
+	"item": [
+		{
+			"name": "get health service",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8000/api/v1/notif/health",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"v1",
+						"notif",
+						"health"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

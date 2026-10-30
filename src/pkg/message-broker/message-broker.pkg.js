@@ -1,0 +1,146 @@
+const { getChannel } = require("../../config/message-broker.config");
+
+/**
+ * Helper to ensure DLX and DLQ exist for a target queue
+ */
+const setupDLQForQueue = async (channel, targetQueue) => {
+  let dlqName = `dlq_${targetQueue}`;
+  let dlxExchange = `dlx_${targetQueue}`;
+
+  await channel.assertExchange(dlxExchange, "direct", { durable: true });
+  await channel.assertQueue(dlqName, { durable: true });
+  await channel.bindQueue(dlqName, dlxExchange, dlqName);
+
+  await channel.assertQueue(targetQueue, {
+    durable: true,
+    arguments: {
+      "x-dead-letter-exchange": dlxExchange,
+      "x-dead-letter-routing-key": dlqName,
+    },
+  });
+  return { dlqName, dlxExchange };
+};
+
+/**
+ * Deliver payload data to specified RabbitMQ queue(s)
+ * @param {string|string[]} queueName - Target Queue Name(s)
+ * @param {object|string} payload - Payload object or string
+ */
+const deliverMessageData = async (queueName, payload) => {
+  try {
+    let channel = getChannel();
+    if (!channel) {
+      throw new Error("RabbitMQ channel is not initialized or connected yet.");
+    }
+    let messageBuffer = Buffer.from(
+      typeof payload == "string" ? payload : JSON.stringify(payload),
+    );
+
+    let queueNames = Array.isArray(queueName) ? queueName : [queueName];
+    for (let targetQueue of queueNames) {
+      await setupDLQForQueue(channel, targetQueue);
+      channel.sendToQueue(targetQueue, messageBuffer, {
+        persistent: true,
+      });
+      console.log(`[RabbitMQ] Message delivered to queue '${targetQueue}'`);
+    }
+    return true;
+  } catch (error) {
+    console.error(
+      `[RabbitMQ] Failed to deliver message to '${queueName}':`,
+      error.message,
+    );
+    throw error;
+  }
+};
+
+/**
+ * Consume messages with Manual ACK and automatic Dead-Lettering on error
+ * @param {string|string[]} queueName - Queue Name(s)
+ * @param {function} callback - Callback function accepting (msg, payload)
+ */
+const reciverMessageData = async (queueName, callback) => {
+  try {
+    let channel = getChannel();
+    if (!channel) {
+      throw new Error("RabbitMQ channel is not initialized or connected yet.");
+    }
+
+    let queueNames = Array.isArray(queueName) ? queueName : [queueName];
+    for (let targetQueue of queueNames) {
+      let { dlqName } = await setupDLQForQueue(channel, targetQueue);
+
+      await channel.prefetch(10);
+
+      channel.consume(
+        targetQueue,
+        async (msg) => {
+          if (msg) return;
+          try {
+            await callback(msg);
+            channel.ack(msg);
+          } catch (err) {
+            console.error(
+              `[RabbitMQ] Error processing message in '${targetQueue}': ${err.message}. Moving to DLQ '${dlqName}'`,
+            );
+            // Move message to DLQ (requeue: false)
+            channel.nack(msg, false, false);
+          }
+        },
+        {
+          noAct: false,
+        },
+      );
+      console.log(
+        `[RabbitMQ] Waiting for messages on queue '${targetQueue}' (DLQ: '${dlqName}')`,
+      );
+    }
+    return true;
+  } catch (error) {
+    console.error(
+      `[RabbitMQ] Failed to receive messages from queue '${queueName}':`,
+      error.message,
+    );
+    throw error;
+  }
+};
+
+/**
+ * Reprocess / Replay messages from DLQ back to the main queue
+ * @param {string} targetQueue - Main Queue Name
+ */
+const reprocessDLQMessages = async (targetQueue) => {
+  try {
+    let channel = getChannel();
+    if (!channel) {
+      throw new Error("RabbitMQ channel is not initialized or connected yet.");
+    }
+    let dlqName = `dlq_${targetQueue}`;
+    let count = 10;
+
+    while (true) {
+      let msg = await channel.get(dlqName, { noAct: false });
+      if (!msg) break;
+
+      channel.sendToQueue(targetQueue, msg.content, { persistent: true });
+      channel.ack(msg);
+    }
+
+    console.log(
+      `[RabbitMQ DLQ Replay] Successfully reprocessed ${count} messages from '${dlqName}' to '${targetQueue}'`,
+    );
+    return count;
+  } catch (error) {
+    console.error(
+      `[RabbitMQ DLQ Replay] Failed to reprocess DLQ for '${targetQueue}':`,
+      error.message,
+    );
+    throw error;
+  }
+};
+
+module.exports = {
+  deliverMessageData,
+  reciverMessageData,
+  reprocessDLQMessages,
+};
