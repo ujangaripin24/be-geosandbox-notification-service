@@ -75,7 +75,7 @@ const reciverMessageData = async (queueName, callback) => {
       channel.consume(
         targetQueue,
         async (msg) => {
-          if (msg) return;
+          if (!msg) return;
           try {
             await callback(msg);
             channel.ack(msg);
@@ -88,7 +88,7 @@ const reciverMessageData = async (queueName, callback) => {
           }
         },
         {
-          noAct: false,
+          noAck: false,
         },
       );
       console.log(
@@ -119,7 +119,7 @@ const reprocessDLQMessages = async (targetQueue) => {
     let count = 10;
 
     while (true) {
-      let msg = await channel.get(dlqName, { noAct: false });
+      let msg = await channel.get(dlqName, { noAck: false });
       if (!msg) break;
 
       channel.sendToQueue(targetQueue, msg.content, { persistent: true });

@@ -1,3 +1,6 @@
+const {
+  listenPointPlacesQueue,
+} = require("./pkg/message-broker/point-places.subscriber");
 const cors = require("cors");
 const express = require("express");
 const logger = require("morgan");
@@ -68,6 +71,7 @@ app.listen(process.env.APP_PORT, async () => {
   try {
     await database.authenticate();
     await messageBroker.connectRabbitMQ();
+    await listenPointPlacesQueue();
   } catch (error) {
     console.error("Unable to start server:");
     console.error(error.message);
