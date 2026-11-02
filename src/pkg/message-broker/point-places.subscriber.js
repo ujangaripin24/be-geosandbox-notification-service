@@ -7,6 +7,8 @@ const {
   reprocessDLQMessages,
 } = require("./message-broker.pkg");
 
+const { NotifPointPlaces } = require("../../models");
+
 let consumerRegistered = false;
 
 const consumePointPlacesQueue = async () => {
@@ -17,6 +19,21 @@ const consumePointPlacesQueue = async () => {
       "[gis-service] Reciver 'point_places_queue' payload: ",
       payload,
     );
+    const { event_type, uuid_places, username, name_place, provinsi, is_read } =
+      payload;
+    if (!event_type) {
+      console.warn("[notif-service] Missing data message payload");
+      return;
+    }
+    await NotifPointPlaces.create({
+      event_type,
+      uuid_places,
+      username: username || null,
+      name_places: name_place,
+      nama_provinsi: provinsi,
+      is_read: is_read || "unread",
+    });
+    console.log("[notif-service] Successfully create notif save to database");
   });
 };
 

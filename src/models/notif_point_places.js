@@ -1,9 +1,7 @@
-'use strict';
-const {
-  Model
-} = require('sequelize');
+"use strict";
+const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
-  class notif_point_places extends Model {
+  class NotifPointPlaces extends Model {
     /**
      * Helper method for defining associations.
      * This method is not a part of Sequelize lifecycle.
@@ -13,16 +11,46 @@ module.exports = (sequelize, DataTypes) => {
       // define association here
     }
   }
-  notif_point_places.init({
-    uuid: DataTypes.STRING,
-    event_type: DataTypes.STRING,
-    username: DataTypes.STRING,
-    name_places: DataTypes.STRING,
-    nama_provinsi: DataTypes.STRING,
-    is_read: DataTypes.STRING
-  }, {
-    sequelize,
-    modelName: 'notif_point_places',
-  });
-  return notif_point_places;
+  NotifPointPlaces.init(
+    {
+      uuid: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true,
+        allowNull: false,
+      },
+      event_type: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      uuid_places: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      username: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      name_places: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      nama_provinsi: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      is_read: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: false,
+      },
+    },
+    {
+      sequelize,
+      modelName: "NotifPointPlaces",
+      tableName: "notif_point_places",
+      timestamps: true,
+    },
+  );
+  return NotifPointPlaces;
 };
