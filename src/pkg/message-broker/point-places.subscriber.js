@@ -8,6 +8,7 @@ const {
 } = require("./message-broker.pkg");
 
 const { NotifPointPlaces } = require("../../models");
+const { sendPushNotification } = require("../websocket/push-notif-places.pkg");
 
 let consumerRegistered = false;
 
@@ -33,6 +34,11 @@ const consumePointPlacesQueue = async () => {
       nama_provinsi: provinsi,
       is_read: is_read || "unread",
     });
+    sendPushNotification({
+      username: newNotif.username,
+      name_place: newNotif.name_places,
+      nama_provinsi: newNotif.nama_provinsi,
+    })
     console.log("[notif-service] Successfully create notif save to database");
   });
 };
