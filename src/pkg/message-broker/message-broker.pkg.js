@@ -116,7 +116,7 @@ const reprocessDLQMessages = async (targetQueue) => {
       throw new Error("RabbitMQ channel is not initialized or connected yet.");
     }
     let dlqName = `dlq_${targetQueue}`;
-    let count = 10;
+    let count = 0;
 
     while (true) {
       let msg = await channel.get(dlqName, { noAck: false });
@@ -124,6 +124,7 @@ const reprocessDLQMessages = async (targetQueue) => {
 
       channel.sendToQueue(targetQueue, msg.content, { persistent: true });
       channel.ack(msg);
+      count++;
     }
 
     console.log(

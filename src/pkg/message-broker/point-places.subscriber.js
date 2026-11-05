@@ -26,7 +26,7 @@ const consumePointPlacesQueue = async () => {
       console.warn("[notif-service] Missing data message payload");
       return;
     }
-    await NotifPointPlaces.create({
+    const newNotif = await NotifPointPlaces.create({
       event_type,
       uuid_places,
       username: username || null,
@@ -34,11 +34,14 @@ const consumePointPlacesQueue = async () => {
       nama_provinsi: provinsi,
       is_read: is_read || "unread",
     });
+
     sendPushNotification({
+      uuid_places: newNotif.uuid_places,
       username: newNotif.username,
       name_place: newNotif.name_places,
       nama_provinsi: newNotif.nama_provinsi,
-    })
+    });
+
     console.log("[notif-service] Successfully create notif save to database");
   });
 };
