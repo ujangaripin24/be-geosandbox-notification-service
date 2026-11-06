@@ -36,10 +36,13 @@ const consumePointPlacesQueue = async () => {
     });
 
     sendPushNotification({
+      event_type: newNotif.event_type,
       uuid_places: newNotif.uuid_places,
       username: newNotif.username,
       name_place: newNotif.name_places,
       nama_provinsi: newNotif.nama_provinsi,
+      is_read: newNotif.is_read,
+      createdAt: newNotif.createdAt,
     });
 
     console.log("[notif-service] Successfully create notif save to database");
