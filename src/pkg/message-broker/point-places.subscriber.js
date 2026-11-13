@@ -17,25 +17,48 @@ const consumePointPlacesQueue = async () => {
     if (!msg) return;
     const payload = JSON.parse(msg.content.toString());
     console.log(
-      "[gis-service] Reciver 'point_places_queue' payload: ",
+      "[notif-service] Received 'point_places_queue' payload: ",
       payload,
     );
     const { event_type, uuid_places, username, name_place, provinsi, is_read } =
       payload;
-    if (!event_type) {
-      console.warn("[notif-service] Missing data message payload");
+    if (!event_type || !uuid_places) {
+      console.warn(
+        "[notif-service] Missing event_type or uuid_places in message payload, skipping message",
+      );
       return;
     }
-    const newNotif = await NotifPointPlaces.create({
-      event_type,
-      uuid_places,
-      username: username || null,
-      name_places: name_place,
-      nama_provinsi: provinsi,
-      is_read: is_read || "unread",
+
+    let newNotif = await NotifPointPlaces.findOne({
+      where: { uuid_places, event_type },
     });
 
+    if (!newNotif) {
+      newNotif = await NotifPointPlaces.create({
+        event_type,
+        uuid_places,
+        username: username || null,
+        name_places: name_place,
+        nama_provinsi: provinsi,
+        is_read: is_read || "unread",
+      });
+      console.log(
+        "[notif-service] Successfully created notif and saved to database",
+      );
+    } else {
+      await newNotif.update({
+        username: username || newNotif.username,
+        name_places: name_place || newNotif.name_places,
+        nama_provinsi: provinsi || newNotif.nama_provinsi,
+        is_read: is_read || newNotif.is_read,
+      });
+      console.log(
+        `[notif-service] Notif record for uuid_places ${uuid_places} (${event_type}) already exists, updated record.`,
+      );
+    }
+
     sendPushNotification({
+      uuid: newNotif.uuid,
       event_type: newNotif.event_type,
       uuid_places: newNotif.uuid_places,
       username: newNotif.username,
@@ -44,14 +67,12 @@ const consumePointPlacesQueue = async () => {
       is_read: newNotif.is_read,
       createdAt: newNotif.createdAt,
     });
-
-    console.log("[notif-service] Successfully create notif save to database");
   });
 };
 
 /**
- * Listens to 'user_activated' queue from RabbitMQ
- * and creates a new DetailUsers record in database.
+ * Listens to 'point_places_queue' queue from RabbitMQ
+ * and creates/updates a NotifPointPlaces record in database.
  * Also attempts to reprocess any DLQ messages when listener starts.
  */
 const listenPointPlacesQueue = async () => {
@@ -64,7 +85,7 @@ const listenPointPlacesQueue = async () => {
       try {
         await reprocessDLQMessages("point_places_queue");
       } catch (dlqErr) {
-        console.error("[user-service] Auto DLQ replay error:", dlqErr.message);
+        console.error("[notif-service] Auto DLQ replay error:", dlqErr.message);
       }
     }, 3000);
   };
@@ -75,7 +96,7 @@ const listenPointPlacesQueue = async () => {
     if (getChannel()) await startListener();
   } catch (error) {
     console.error(
-      "[user-service] Failed to start 'user_activated' listener:",
+      "[notif-service] Failed to start 'point_places_queue' listener:",
       error.message,
     );
   }
